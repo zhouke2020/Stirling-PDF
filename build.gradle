@@ -32,6 +32,12 @@ java {
 repositories {
     mavenCentral()
     maven { url "https://jitpack.io" }
+    maven {
+        url "https://build.shibboleth.net/nexus/content/repositories/releases/"
+    }
+    maven {
+        url "https://build.shibboleth.net/maven/releases/"
+    }
 }
 
 licenseReport {
@@ -114,6 +120,10 @@ configurations.all {
     exclude group: "org.springframework.boot", module: "spring-boot-starter-tomcat"
 }
 dependencies {
+
+
+
+
     //security updates
     implementation "org.springframework:spring-webmvc:6.1.9"
 
@@ -128,7 +138,7 @@ dependencies {
 
     implementation "org.springframework.boot:spring-boot-starter-thymeleaf:$springBootVersion"
 
-    if (System.getenv("DOCKER_ENABLE_SECURITY") != "false") {
+if (System.getenv("DOCKER_ENABLE_SECURITY") != "false") {
         implementation "org.springframework.boot:spring-boot-starter-security:$springBootVersion"
         runtimeOnly "org.thymeleaf.extras:thymeleaf-extras-springsecurity5:3.1.2.RELEASE"
         implementation "org.springframework.boot:spring-boot-starter-data-jpa:$springBootVersion"
@@ -137,7 +147,8 @@ dependencies {
         //2.2.x requires rebuild of DB file.. need migration path
         runtimeOnly "com.h2database:h2:2.1.214"
         // implementation "com.h2database:h2:2.2.224"
-    }
+    implementation 'org.springframework.security:spring-security-saml2-service-provider:6.3.3'
+      }
 
     testImplementation "org.springframework.boot:spring-boot-starter-test:$springBootVersion"
 

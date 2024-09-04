@@ -6,37 +6,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.registration.ClientRegistration;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.client.registration.ClientRegistrations;
-import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
-import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
-import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
+import org.springframework.security.saml2.provider.service.authentication.OpenSaml4AuthenticationProvider;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
-import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestRepository;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml4LogoutRequestRepository;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutResponseRepository;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml4LogoutResponseRepository;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutSuccessHandler;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml4LogoutSuccessHandler;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestValidator;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml4LogoutRequestValidator;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutResponseValidator;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml4LogoutResponseValidator;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
@@ -47,19 +30,11 @@ import stirling.software.SPDF.config.security.oauth2.CustomOAuth2AuthenticationF
 import stirling.software.SPDF.config.security.oauth2.CustomOAuth2AuthenticationSuccessHandler;
 import stirling.software.SPDF.config.security.oauth2.CustomOAuth2LogoutSuccessHandler;
 import stirling.software.SPDF.config.security.oauth2.CustomOAuth2UserService;
-import stirling.software.SPDF.config.security.saml.CustomSAMLAuthenticationSuccessHandler;
 import stirling.software.SPDF.config.security.saml.CustomSAMLAuthenticationFailureHandler;
-import stirling.software.SPDF.config.security.saml.SAMLUserDetailsService;
-import stirling.software.SPDF.config.security.saml.SAMLConfig;
+import stirling.software.SPDF.config.security.saml.CustomSAMLAuthenticationSuccessHandler;
 import stirling.software.SPDF.config.security.saml.SAMLLogoutSuccessHandler;
 import stirling.software.SPDF.config.security.session.SessionPersistentRegistry;
 import stirling.software.SPDF.model.ApplicationProperties;
-import stirling.software.SPDF.model.ApplicationProperties.Security.OAUTH2;
-import stirling.software.SPDF.model.ApplicationProperties.Security.OAUTH2.Client;
-import stirling.software.SPDF.model.User;
-import stirling.software.SPDF.model.provider.GithubProvider;
-import stirling.software.SPDF.model.provider.GoogleProvider;
-import stirling.software.SPDF.model.provider.KeycloakProvider;
 import stirling.software.SPDF.repository.JPATokenRepositoryImpl;
 
 @Configuration
@@ -68,6 +43,15 @@ import stirling.software.SPDF.repository.JPATokenRepositoryImpl;
 public class SecurityConfiguration {
 
     @Autowired private CustomUserDetailsService userDetailsService;
+
+    @Autowired(required = false)
+    private GrantedAuthoritiesMapper userAuthoritiesMapper;
+
+    @Autowired(required = false)
+    private OpenSaml4AuthenticationProvider samlAuthenticationProvider;
+
+    @Autowired(required = false)
+    private RelyingPartyRegistrationRepository relyingPartyRegistrationRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfiguration.class);
 
@@ -153,6 +137,7 @@ public class SecurityConfiguration {
 
                                                         return trimmedUri.startsWith("/login")
                                                                 || trimmedUri.startsWith("/oauth")
+                                                                || trimmedUri.startsWith("/saml2")
                                                                 || trimmedUri.endsWith(".svg")
                                                                 || trimmedUri.startsWith(
                                                                         "/register")
@@ -202,7 +187,7 @@ public class SecurityConfiguration {
                                                                                         userService,
                                                                                         loginAttemptService))
                                                                         .userAuthoritiesMapper(
-                                                                                userAuthoritiesMapper())))
+                                                                                userAuthoritiesMapper)))
                         .logout(
                                 logout ->
                                         logout.logoutSuccessHandler(
@@ -220,13 +205,19 @@ public class SecurityConfiguration {
 
                 http.saml2Login(
                                 saml2 ->
-                                        saml2.loginPage("/saml2")
+                                        saml2.relyingPartyRegistrationRepository(
+                                                        relyingPartyRegistrationRepository)
+                                                .loginProcessingUrl("/login/saml2/sso/stirling")
+                                                .loginPage("/saml2")
+                                                .authenticationManager(
+                                                        new ProviderManager(
+                                                                samlAuthenticationProvider))
                                                 .successHandler(
                                                         new CustomSAMLAuthenticationSuccessHandler(
                                                                 loginAttemptService, userService))
                                                 .failureHandler(
-                                                        new CustomSAMLAuthenticationFailureHandler())
-                                                .userDetailsService(new SAMLUserDetailsService()))
+                                                        new CustomSAMLAuthenticationFailureHandler()))
+                        .saml2Metadata(Customizer.withDefaults())
                         .logout(
                                 logout ->
                                         logout.logoutSuccessHandler(
@@ -238,178 +229,6 @@ public class SecurityConfiguration {
         }
 
         return http.build();
-    }
-
-    // Client Registration Repository for OAUTH2 OIDC Login
-    @Bean
-    @ConditionalOnProperty(
-            value = "security.oauth2.enabled",
-            havingValue = "true",
-            matchIfMissing = false)
-    public ClientRegistrationRepository clientRegistrationRepository() {
-        List<ClientRegistration> registrations = new ArrayList<>();
-
-        githubClientRegistration().ifPresent(registrations::add);
-        oidcClientRegistration().ifPresent(registrations::add);
-        googleClientRegistration().ifPresent(registrations::add);
-        keycloakClientRegistration().ifPresent(registrations::add);
-
-        if (registrations.isEmpty()) {
-            logger.error("At least one OAuth2 provider must be configured");
-            System.exit(1);
-        }
-
-        return new InMemoryClientRegistrationRepository(registrations);
-    }
-
-    private Optional<ClientRegistration> googleClientRegistration() {
-        OAUTH2 oauth = applicationProperties.getSecurity().getOAUTH2();
-        if (oauth == null || !oauth.getEnabled()) {
-            return Optional.empty();
-        }
-        Client client = oauth.getClient();
-        if (client == null) {
-            return Optional.empty();
-        }
-        GoogleProvider google = client.getGoogle();
-        return google != null && google.isSettingsValid()
-                ? Optional.of(
-                        ClientRegistration.withRegistrationId(google.getName())
-                                .clientId(google.getClientId())
-                                .clientSecret(google.getClientSecret())
-                                .scope(google.getScopes())
-                                .authorizationUri(google.getAuthorizationuri())
-                                .tokenUri(google.getTokenuri())
-                                .userInfoUri(google.getUserinfouri())
-                                .userNameAttributeName(google.getUseAsUsername())
-                                .clientName(google.getClientName())
-                                .redirectUri("{baseUrl}/login/oauth2/code/" + google.getName())
-                                .authorizationGrantType(
-                                        org.springframework.security.oauth2.core
-                                                .AuthorizationGrantType.AUTHORIZATION_CODE)
-                                .build())
-                : Optional.empty();
-    }
-
-    private Optional<ClientRegistration> keycloakClientRegistration() {
-        OAUTH2 oauth = applicationProperties.getSecurity().getOAUTH2();
-        if (oauth == null || !oauth.getEnabled()) {
-            return Optional.empty();
-        }
-        Client client = oauth.getClient();
-        if (client == null) {
-            return Optional.empty();
-        }
-        KeycloakProvider keycloak = client.getKeycloak();
-
-        return keycloak != null && keycloak.isSettingsValid()
-                ? Optional.of(
-                        ClientRegistrations.fromIssuerLocation(keycloak.getIssuer())
-                                .registrationId(keycloak.getName())
-                                .clientId(keycloak.getClientId())
-                                .clientSecret(keycloak.getClientSecret())
-                                .scope(keycloak.getScopes())
-                                .userNameAttributeName(keycloak.getUseAsUsername())
-                                .clientName(keycloak.getClientName())
-                                .build())
-                : Optional.empty();
-    }
-
-    private Optional<ClientRegistration> githubClientRegistration() {
-        OAUTH2 oauth = applicationProperties.getSecurity().getOAUTH2();
-        if (oauth == null || !oauth.getEnabled()) {
-            return Optional.empty();
-        }
-        Client client = oauth.getClient();
-        if (client == null) {
-            return Optional.empty();
-        }
-        GithubProvider github = client.getGithub();
-        return github != null && github.isSettingsValid()
-                ? Optional.of(
-                        ClientRegistration.withRegistrationId(github.getName())
-                                .clientId(github.getClientId())
-                                .clientSecret(github.getClientSecret())
-                                .scope(github.getScopes())
-                                .authorizationUri(github.getAuthorizationuri())
-                                .tokenUri(github.getTokenuri())
-                                .userInfoUri(github.getUserinfouri())
-                                .userNameAttributeName(github.getUseAsUsername())
-                                .clientName(github.getClientName())
-                                .redirectUri("{baseUrl}/login/oauth2/code/" + github.getName())
-                                .authorizationGrantType(
-                                        org.springframework.security.oauth2.core
-                                                .AuthorizationGrantType.AUTHORIZATION_CODE)
-                                .build())
-                : Optional.empty();
-    }
-
-    private Optional<ClientRegistration> oidcClientRegistration() {
-        OAUTH2 oauth = applicationProperties.getSecurity().getOAUTH2();
-        if (oauth == null
-                || oauth.getIssuer() == null
-                || oauth.getIssuer().isEmpty()
-                || oauth.getClientId() == null
-                || oauth.getClientId().isEmpty()
-                || oauth.getClientSecret() == null
-                || oauth.getClientSecret().isEmpty()
-                || oauth.getScopes() == null
-                || oauth.getScopes().isEmpty()
-                || oauth.getUseAsUsername() == null
-                || oauth.getUseAsUsername().isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(
-                ClientRegistrations.fromIssuerLocation(oauth.getIssuer())
-                        .registrationId("oidc")
-                        .clientId(oauth.getClientId())
-                        .clientSecret(oauth.getClientSecret())
-                        .scope(oauth.getScopes())
-                        .userNameAttributeName(oauth.getUseAsUsername())
-                        .clientName("OIDC")
-                        .build());
-    }
-
-    /*
-    This following function is to grant Authorities to the OAUTH2 user from the values stored in the database.
-    This is required for the internal; 'hasRole()' function to give out the correct role.
-     */
-    @Bean
-    @ConditionalOnProperty(
-            value = "security.oauth2.enabled",
-            havingValue = "true",
-            matchIfMissing = false)
-    GrantedAuthoritiesMapper userAuthoritiesMapper() {
-        return (authorities) -> {
-            Set<GrantedAuthority> mappedAuthorities = new HashSet<>();
-
-            authorities.forEach(
-                    authority -> {
-                        // Add existing OAUTH2 Authorities
-                        mappedAuthorities.add(new SimpleGrantedAuthority(authority.getAuthority()));
-
-                        // Add Authorities from database for existing user, if user is present.
-                        if (authority instanceof OAuth2UserAuthority oauth2Auth) {
-                            String useAsUsername =
-                                    applicationProperties
-                                            .getSecurity()
-                                            .getOAUTH2()
-                                            .getUseAsUsername();
-                            Optional<User> userOpt =
-                                    userService.findByUsernameIgnoreCase(
-                                            (String) oauth2Auth.getAttributes().get(useAsUsername));
-                            if (userOpt.isPresent()) {
-                                User user = userOpt.get();
-                                if (user != null) {
-                                    mappedAuthorities.add(
-                                            new SimpleGrantedAuthority(
-                                                    userService.findRole(user).getAuthority()));
-                                }
-                            }
-                        }
-                    });
-            return mappedAuthorities;
-        };
     }
 
     @Bean
@@ -426,43 +245,5 @@ public class SecurityConfiguration {
     @Bean
     public boolean activSecurity() {
         return true;
-    }
-
-    // SAML Configuration
-    @Bean
-    public RelyingPartyRegistrationRepository relyingPartyRegistrationRepository() {
-        RelyingPartyRegistration registration = RelyingPartyRegistration
-                .withRegistrationId("saml")
-                .entityId(applicationProperties.getSecurity().getSAML().getEntityId())
-                .assertionConsumerServiceLocation(applicationProperties.getSecurity().getSAML().getSpBaseUrl() + "/saml2/acs")
-                .singleLogoutServiceLocation(applicationProperties.getSecurity().getSAML().getSpBaseUrl() + "/saml2/logout")
-                .idpWebSsoUrl(applicationProperties.getSecurity().getSAML().getIdpMetadataLocation())
-                .build();
-        return new InMemoryRelyingPartyRegistrationRepository(registration);
-    }
-
-    @Bean
-    public Saml2LogoutRequestRepository logoutRequestRepository() {
-        return new OpenSaml4LogoutRequestRepository();
-    }
-
-    @Bean
-    public Saml2LogoutResponseRepository logoutResponseRepository() {
-        return new OpenSaml4LogoutResponseRepository();
-    }
-
-    @Bean
-    public Saml2LogoutSuccessHandler logoutSuccessHandler() {
-        return new OpenSaml4LogoutSuccessHandler();
-    }
-
-    @Bean
-    public Saml2LogoutRequestValidator logoutRequestValidator() {
-        return new OpenSaml4LogoutRequestValidator();
-    }
-
-    @Bean
-    public Saml2LogoutResponseValidator logoutResponseValidator() {
-        return new OpenSaml4LogoutResponseValidator();
     }
 }

@@ -29,7 +29,9 @@ public class SAMLLogoutSuccessHandler extends SimpleUrlLogoutSuccessHandler {
     }
 
     protected String determineTargetUrl(
-            HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Authentication authentication) {
         // Default to the root URL
         return "/";
     }

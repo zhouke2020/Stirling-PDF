@@ -41,7 +41,8 @@ public class CustomSAMLAuthenticationFailureHandler extends SimpleUrlAuthenticat
         }
         if (exception instanceof Saml2AuthenticationException) {
             log.error("SAML2 Authentication error: ", exception);
-            getRedirectStrategy().sendRedirect(request, response, "/logout?error=saml2AuthenticationError");
+            getRedirectStrategy()
+                    .sendRedirect(request, response, "/logout?error=saml2AuthenticationError");
             return;
         }
         log.error("Unhandled authentication exception", exception);

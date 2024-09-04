@@ -1,5 +1,6 @@
 package stirling.software.SPDF.model;
 
+import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -11,7 +12,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 
+import lombok.Data;
 import stirling.software.SPDF.config.YamlPropertySourceFactory;
 import stirling.software.SPDF.model.provider.GithubProvider;
 import stirling.software.SPDF.model.provider.GoogleProvider;
@@ -130,6 +135,7 @@ public class ApplicationProperties {
         private Boolean csrfDisabled;
         private InitialLogin initialLogin;
         private OAUTH2 oauth2;
+        private SAML saml;
         private int loginAttemptCount;
         private long loginResetTimeMinutes;
         private String loginMethod = "all";
@@ -172,6 +178,14 @@ public class ApplicationProperties {
 
         public void setOAUTH2(OAUTH2 oauth2) {
             this.oauth2 = oauth2;
+        }
+
+        public SAML getSAML() {
+            return saml != null ? saml : new SAML();
+        }
+
+        public void setSAML(SAML saml) {
+            this.saml = saml;
         }
 
         public Boolean getEnableLogin() {
@@ -232,6 +246,34 @@ public class ApplicationProperties {
                         + ", password="
                         + (password != null && !password.isEmpty() ? "MASKED" : "NULL")
                         + "]";
+            }
+        }
+
+        @Data
+        public static class SAML {
+            private Boolean enabled = false;
+            private String entityId;
+            private String registrationId;
+            private String spBaseUrl;
+            private String idpMetadataLocation;
+            private KeyStore keystore;
+
+            @Data
+            public static class KeyStore {
+                private String keystoreLocation;
+                private String keystorePassword;
+                private String keyAlias;
+                private String keyPassword;
+                private String realmCertificateAlias;
+
+                public Resource getKeystoreResource() {
+                    if (keystoreLocation.startsWith("classpath:")) {
+                        return new ClassPathResource(
+                                keystoreLocation.substring("classpath:".length()));
+                    } else {
+                        return new FileSystemResource(keystoreLocation);
+                    }
+                }
             }
         }
 

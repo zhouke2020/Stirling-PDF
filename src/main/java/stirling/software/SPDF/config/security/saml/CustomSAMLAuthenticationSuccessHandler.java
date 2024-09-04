@@ -11,21 +11,26 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
+import stirling.software.SPDF.config.security.LoginAttemptService;
+import stirling.software.SPDF.config.security.UserService;
 import stirling.software.SPDF.utils.RequestUriUtils;
 
 @Slf4j
-public class CustomSAMLAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
+public class CustomSAMLAuthenticationSuccessHandler
+        extends SavedRequestAwareAuthenticationSuccessHandler {
 
     private LoginAttemptService loginAttemptService;
     private UserService userService;
 
-    public CustomSAMLAuthenticationSuccessHandler(LoginAttemptService loginAttemptService, UserService userService) {
+    public CustomSAMLAuthenticationSuccessHandler(
+            LoginAttemptService loginAttemptService, UserService userService) {
         this.loginAttemptService = loginAttemptService;
         this.userService = userService;
     }
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
+    public void onAuthenticationSuccess(
+            HttpServletRequest request, HttpServletResponse response, Authentication authentication)
             throws ServletException, IOException {
 
         String userName = request.getParameter("username");
@@ -37,9 +42,14 @@ public class CustomSAMLAuthenticationSuccessHandler extends SavedRequestAwareAut
 
         // Get the saved request
         HttpSession session = request.getSession(false);
-        SavedRequest savedRequest = (session != null) ? (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST") : null;
+        SavedRequest savedRequest =
+                (session != null)
+                        ? (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST")
+                        : null;
 
-        if (savedRequest != null && !RequestUriUtils.isStaticResource(request.getContextPath(), savedRequest.getRedirectUrl())) {
+        if (savedRequest != null
+                && !RequestUriUtils.isStaticResource(
+                        request.getContextPath(), savedRequest.getRedirectUrl())) {
             // Redirect to the original destination
             super.onAuthenticationSuccess(request, response, authentication);
         } else {
