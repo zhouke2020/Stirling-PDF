@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import stirling.software.SPDF.config.security.session.SessionPersistentRegistry;
 import stirling.software.SPDF.model.*;
@@ -47,6 +48,13 @@ public class AccountWebController {
         // If the user is already authenticated, redirect them to the home page.
         if (authentication != null && authentication.isAuthenticated()) {
             return "redirect:/";
+        }
+
+        // Store the previous page URL in the session before redirecting to the login page
+        HttpSession session = request.getSession();
+        String referer = request.getHeader("Referer");
+        if (referer != null && !referer.contains("/login")) {
+            session.setAttribute("PREVIOUS_PAGE_URL", referer);
         }
 
         Map<String, String> providerList = new HashMap<>();

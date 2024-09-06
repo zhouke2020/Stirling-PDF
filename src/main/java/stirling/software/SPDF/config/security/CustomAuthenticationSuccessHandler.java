@@ -45,7 +45,15 @@ public class CustomAuthenticationSuccessHandler
                         ? (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST")
                         : null;
 
-        if (savedRequest != null
+        // Check for the stored previous page URL
+        String previousPageUrl = (session != null) ? (String) session.getAttribute("PREVIOUS_PAGE_URL") : null;
+
+        if (previousPageUrl != null) {
+            // Redirect to the stored previous page URL
+            getRedirectStrategy().sendRedirect(request, response, previousPageUrl);
+            // Remove the stored previous page URL from the session
+            session.removeAttribute("PREVIOUS_PAGE_URL");
+        } else if (savedRequest != null
                 && !RequestUriUtils.isStaticResource(
                         request.getContextPath(), savedRequest.getRedirectUrl())) {
             // Redirect to the original destination
