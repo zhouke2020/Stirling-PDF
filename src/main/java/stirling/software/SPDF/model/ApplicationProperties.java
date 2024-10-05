@@ -13,9 +13,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 
 import lombok.Data;
 import lombok.ToString;
@@ -81,25 +78,30 @@ public class ApplicationProperties {
             private String registrationId;
             private String spBaseUrl;
             private String idpMetadataLocation;
-            private KeyStore keystore;
+            //            private KeyStore keystore;
+            private String privateKeyLocation;
+            private String certificateLocation;
+            private String singleLogoutBinding;
+            private String singleLogoutResponseUri;
+            private String signingCertificate;
 
-            @Data
-            public static class KeyStore {
-                private String keystoreLocation;
-                private String keystorePassword;
-                private String keyAlias;
-                private String keyPassword;
-                private String realmCertificateAlias;
-
-                public Resource getKeystoreResource() {
-                    if (keystoreLocation.startsWith("classpath:")) {
-                        return new ClassPathResource(
-                                keystoreLocation.substring("classpath:".length()));
-                    } else {
-                        return new FileSystemResource(keystoreLocation);
-                    }
-                }
-            }
+            //            @Data
+            //            public static class KeyStore {
+            //                private String keystoreLocation;
+            //                private String keystorePassword;
+            //                private String keyAlias;
+            //                private String keyPassword;
+            //                private String realmCertificateAlias;
+            //
+            //                public Resource getKeystoreResource() {
+            //                    if (keystoreLocation.startsWith("classpath:")) {
+            //                        return new ClassPathResource(
+            //                                keystoreLocation.substring("classpath:".length()));
+            //                    } else {
+            //                        return new FileSystemResource(keystoreLocation);
+            //                    }
+            //                }
+            //            }
         }
 
         @Data

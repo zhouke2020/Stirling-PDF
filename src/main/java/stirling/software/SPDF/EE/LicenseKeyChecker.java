@@ -46,7 +46,6 @@ public class LicenseKeyChecker {
                 log.info("License key is invalid.");
             }
         }
-        
     }
 
     public void updateLicenseKey(String newKey) throws IOException {
