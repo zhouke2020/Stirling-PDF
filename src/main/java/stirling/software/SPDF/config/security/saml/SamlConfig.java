@@ -15,10 +15,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.converter.RsaKeyConverters;
 import org.springframework.security.saml2.core.Saml2X509Credential;
-import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
-import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
-import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
-import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrations;
+import org.springframework.security.saml2.provider.service.registration.*;
 
 import lombok.extern.slf4j.Slf4j;
 import stirling.software.SPDF.model.ApplicationProperties;
@@ -80,6 +77,7 @@ public class SamlConfig {
                                             party.wantAuthnRequestsSigned(true)
                                                     .verificationX509Credentials(
                                                             c -> c.add(apCredential)))
+                            .singleLogoutServiceLocation("http://localhost:8090/logout/saml2/slo")
                             .build();
             return new InMemoryRelyingPartyRegistrationRepository(registration);
         }
