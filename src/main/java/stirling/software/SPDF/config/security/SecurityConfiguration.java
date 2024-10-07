@@ -1,5 +1,7 @@
 package stirling.software.SPDF.config.security;
 
+import static org.springframework.security.config.Customizer.withDefaults;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -214,6 +216,7 @@ public class SecurityConfiguration {
                                             .failureHandler(
                                                     new CustomSAMLAuthenticationFailureHandler());
                                 })
+                        .saml2Logout(withDefaults())
                         .addFilterBefore(
                                 userAuthenticationFilter, Saml2WebSsoAuthenticationFilter.class);
             }
