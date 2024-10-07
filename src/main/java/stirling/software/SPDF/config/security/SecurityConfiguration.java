@@ -204,8 +204,7 @@ public class SecurityConfiguration {
                             .equalsIgnoreCase("normal")) {
                 http.saml2Login(
                                 saml2 -> {
-                                    saml2.loginPage("/saml2")
-                                            .relyingPartyRegistrationRepository(
+                                    saml2.relyingPartyRegistrationRepository(
                                                     relyingPartyRegistrationRepository)
                                             .successHandler(
                                                     new CustomSAMLAuthenticationSuccessHandler(

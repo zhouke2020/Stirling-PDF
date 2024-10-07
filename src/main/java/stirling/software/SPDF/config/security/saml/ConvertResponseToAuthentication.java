@@ -1,10 +1,6 @@
 package stirling.software.SPDF.config.security.saml;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.opensaml.saml.saml2.core.Assertion;
@@ -57,7 +53,12 @@ public class ConvertResponseToAuthentication
             return Collections.emptySet();
         }
 
-        final List<Object> groups = new ArrayList<>(attributes.get(authoritiesAttributeName));
+        List<Object> groups = new ArrayList<>();
+
+        if (attributes.get(authoritiesAttributeName) != null) {
+            groups = new ArrayList<>(attributes.get(authoritiesAttributeName));
+        }
+
         return groups.stream()
                 .filter(String.class::isInstance)
                 .map(String.class::cast)
