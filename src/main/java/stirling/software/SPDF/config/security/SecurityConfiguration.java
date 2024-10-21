@@ -32,6 +32,7 @@ import org.springframework.security.saml2.provider.service.authentication.OpenSa
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
+import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrations;
 import org.springframework.security.saml2.provider.service.web.authentication.Saml2WebSsoAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -397,17 +398,41 @@ public class SecurityConfiguration {
         Saml2X509Credential verificationCredential = Saml2X509Credential.verification(idpCert);
 
         RelyingPartyRegistration rp =
-                RelyingPartyRegistration.withRegistrationId(samlConf.getRegistrationId())
+                RelyingPartyRegistrations.fromMetadataLocation(samlConf.getIdpMetadataUriString())
+                        .entityId(samlConf.getEntityId())
+                        .registrationId(samlConf.getRegistrationId())
                         .signingX509Credentials((c) -> c.add(signingCredential))
+                        .singleLogoutServiceLocation(samlConf.getIdpSingleLogoutUrl())
                         .assertingPartyDetails(
                                 (details) ->
-                                        details.entityId(samlConf.getIdpIssuer())
-                                                .singleSignOnServiceLocation(
-                                                        samlConf.getIdpSingleLoginUrl())
+                                        details
+                                                //
+                                                // .entityId(samlConf.getIdpIssuer())
+                                                //
+                                                // .singleSignOnServiceLocation(
+                                                //
+                                                //      samlConf.getIdpSingleLoginUrl())
                                                 .verificationX509Credentials(
                                                         (c) -> c.add(verificationCredential))
                                                 .wantAuthnRequestsSigned(true))
                         .build();
+
+        /*
+               RelyingPartyRegistration rp =
+                       RelyingPartyRegistration.withRegistrationId(samlConf.getRegistrationId())
+                               .entityId(samlConf.getEntityId())
+                               .signingX509Credentials((c) -> c.add(signingCredential))
+                               .assertingPartyDetails(
+                                       (details) ->
+                                               details.entityId(samlConf.getEntityId())
+                                                       .singleSignOnServiceLocation(
+                                                               samlConf.getIdpSingleLoginUrl())
+                                                       .verificationX509Credentials(
+                                                               (c) -> c.add(verificationCredential))
+                                                       .wantAuthnRequestsSigned(true))
+                               .build();
+
+        */
         return new InMemoryRelyingPartyRegistrationRepository(rp);
     }
 

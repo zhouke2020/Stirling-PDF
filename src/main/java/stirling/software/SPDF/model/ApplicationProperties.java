@@ -124,6 +124,7 @@ public class ApplicationProperties {
             private Boolean enabled = false;
             private Boolean autoCreateUser = false;
             private Boolean blockRegistration = false;
+            private String entityId = "stirling";
             private String registrationId = "stirling";
             private String idpMetadataUri;
             private String idpSingleLogoutUrl;
@@ -149,6 +150,10 @@ public class ApplicationProperties {
                 }
             }
 
+            public String getIdpMetadataUriString() {
+                return this.idpMetadataUri;
+            }
+
             public Resource getSpCert() {
                 if (spCert.startsWith("classpath:")) {
                     return new ClassPathResource(spCert.substring("classpath:".length()));
@@ -171,6 +176,10 @@ public class ApplicationProperties {
                 } else {
                     return new FileSystemResource(privateKey);
                 }
+            }
+
+            public String getEntityId() {
+                return entityId;
             }
         }
 

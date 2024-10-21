@@ -70,16 +70,21 @@ public class CustomSaml2ResponseAuthenticationConverter
 
     private Map<String, List<Object>> extractAttributes(Assertion assertion) {
         Map<String, List<Object>> attributes = new HashMap<>();
-        for (AttributeStatement attributeStatement : assertion.getAttributeStatements()) {
-            for (Attribute attribute : attributeStatement.getAttributes()) {
-                String attributeName = attribute.getName();
-                List<Object> values = new ArrayList<>();
-                for (XMLObject xmlObject : attribute.getAttributeValues()) {
-                    log.info("BOOL: " + ((XSBoolean) xmlObject).getValue());
-                    values.add(((XSString) xmlObject).getValue());
+        try {
+            for (AttributeStatement attributeStatement : assertion.getAttributeStatements()) {
+                for (Attribute attribute : attributeStatement.getAttributes()) {
+                    String attributeName = attribute.getName();
+                    List<Object> values = new ArrayList<>();
+                    for (XMLObject xmlObject : attribute.getAttributeValues()) {
+                        log.info("BOOL: " + ((XSBoolean) xmlObject).getValue());
+                        values.add(((XSString) xmlObject).getValue());
+                    }
+                    attributes.put(attributeName, values);
                 }
-                attributes.put(attributeName, values);
             }
+        } catch (Exception ex) {
+            log.error("Could not extract attributes. Error: " + ex.getMessage());
+            return attributes;
         }
         return attributes;
     }
