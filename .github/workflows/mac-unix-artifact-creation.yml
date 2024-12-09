@@ -1,0 +1,71 @@
+name: Create Application Bundles
+
+on:
+  push:
+    branches:
+      - 'mac'
+  workflow_dispatch:
+
+jobs:
+  create-unix-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          
+      - name: Build with Gradle
+        run: ./gradlew bootJar
+        
+      - name: Create Unix Launcher Script
+        run: |
+          chmod +x scripts/create-unix-launcher.sh
+          ./scripts/create-unix-launcher.sh
+          
+      - name: Create tar.gz Bundle
+        run: |
+          mkdir -p Stirling-PDF-unix
+          cp build/libs/Stirling-PDF.jar Stirling-PDF-unix/
+          cp scripts/launcher.sh Stirling-PDF-unix/Stirling-PDF
+          cp src/main/resources/static/favicon.ico Stirling-PDF-unix/icon.png
+          chmod +x Stirling-PDF-unix/Stirling-PDF
+          tar -czf Stirling-PDF-unix.tar.gz Stirling-PDF-unix/
+          
+      - name: Upload Unix Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: unix-bundle
+          path: Stirling-PDF-unix.tar.gz
+
+  create-mac-bundle:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          
+      - name: Build with Gradle
+        run: ./gradlew bootJar
+        
+      - name: Create Mac App Bundle
+        run: |
+          chmod +x scripts/create-mac-launcher.sh
+          ./scripts/create-mac-launcher.sh
+          
+      - name: Create DMG
+        run: |
+          hdiutil create -volname "Stirling-PDF" -srcfolder "Stirling-PDF.app" -ov -format UDZO "Stirling-PDF-mac.dmg"
+          
+      - name: Upload Mac Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-bundle
+          path: Stirling-PDF-mac.dmg
