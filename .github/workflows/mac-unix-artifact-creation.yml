@@ -29,7 +29,7 @@ jobs:
       - name: Create tar.gz Bundle
         run: |
           mkdir -p Stirling-PDF-unix
-          cp build/libs/Stirling-PDF.jar Stirling-PDF-unix/
+          cp build/libs/Stirling-PDF-*.jar Stirling-PDF-unix/Stirling-PDF.jar
           cp scripts/launcher.sh Stirling-PDF-unix/Stirling-PDF
           cp src/main/resources/static/favicon.ico Stirling-PDF-unix/icon.png
           chmod +x Stirling-PDF-unix/Stirling-PDF
