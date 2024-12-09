@@ -6,7 +6,6 @@ COPY scripts /scripts
 COPY pipeline /pipeline
 COPY src/main/resources/static/fonts/*.ttf /usr/share/fonts/opentype/noto/
 #COPY src/main/resources/static/fonts/*.otf /usr/share/fonts/opentype/noto/
-COPY build/libs/*.jar app.jar
 
 ARG VERSION_TAG
 
@@ -19,6 +18,10 @@ ENV DOCKER_ENABLE_SECURITY=false \
     PGID=1000 \
     UMASK=022
 
+# Create non-root user first
+RUN addgroup -S stirlingpdfgroup && \
+    adduser -S stirlingpdfuser -G stirlingpdfgroup
+    
 # JDK for app
 RUN echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/main" | tee -a /etc/apk/repositories && \
     echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/community" | tee -a /etc/apk/repositories && \
@@ -31,8 +34,6 @@ RUN echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/main" | tee -a /et
         bash \
         curl \
         qpdf \
-        shadow \
-        su-exec \
         openssl \
         openssl-dev \
         openjdk21-jre \
@@ -50,15 +51,16 @@ RUN echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/main" | tee -a /et
 # uno unoconv and HTML
     pip install --break-system-packages --no-cache-dir --upgrade unoconv WeasyPrint pdf2image pillow && \
     mv /usr/share/tessdata /usr/share/tessdata-original && \
-    mkdir -p $HOME /configs /logs /customFiles /pipeline/watchedFolders /pipeline/finishedFolders && \
     fc-cache -f -v && \
-    chmod +x /scripts/* && \
-    chmod +x /scripts/init.sh && \
 # User permissions
-    addgroup -S stirlingpdfgroup && adduser -S stirlingpdfuser -G stirlingpdfgroup && \
-    chown -R stirlingpdfuser:stirlingpdfgroup $HOME /scripts /usr/share/fonts/opentype/noto /configs /customFiles /pipeline && \
-    chown stirlingpdfuser:stirlingpdfgroup /app.jar && \
-    tesseract --list-langs
+	mkdir -p ${HOME} /configs /logs /customFiles /pipeline/watchedFolders /pipeline/finishedFolders /scripts /usr/share/fonts/custom && \
+    chown -R stirlingpdfuser:stirlingpdfgroup ${HOME} /configs /logs /customFiles /pipeline /scripts /usr/share/fonts/custom && \
+    chmod -R 755 ${HOME} /configs /customFiles /pipeline /scripts /usr/share/fonts/custom && \
+    tesseract --list-langs && \
+    chmod -R 777 /logs
+
+COPY build/libs/*.jar app.jar
+RUN chown stirlingpdfuser:stirlingpdfgroup /app.jar
 
 EXPOSE 8080/tcp
 

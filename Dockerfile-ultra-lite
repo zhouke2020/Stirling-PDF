@@ -17,8 +17,11 @@ COPY scripts/download-security-jar.sh /scripts/download-security-jar.sh
 COPY scripts/init-without-ocr.sh /scripts/init-without-ocr.sh
 COPY scripts/installFonts.sh /scripts/installFonts.sh
 COPY pipeline /pipeline
-COPY build/libs/*.jar app.jar
 
+# Create non-root user first
+RUN addgroup -S stirlingpdfgroup && \
+    adduser -S stirlingpdfuser -G stirlingpdfgroup
+    
 # Set up necessary directories and permissions
 RUN echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/main" | tee -a /etc/apk/repositories && \
     echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/community" | tee -a /etc/apk/repositories && \
@@ -30,18 +33,15 @@ RUN echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/main" | tee -a /et
         tini \
         bash \
         curl \
-        shadow \
-        su-exec \
         openjdk21-jre && \
     # User permissions
-    mkdir -p /configs /logs /customFiles /usr/share/fonts/opentype/noto && \
-    chmod +x /scripts/*.sh && \
-    addgroup -S stirlingpdfgroup && adduser -S stirlingpdfuser -G stirlingpdfgroup && \
-    chown -R stirlingpdfuser:stirlingpdfgroup $HOME /scripts  /configs /customFiles /pipeline && \
-    chown stirlingpdfuser:stirlingpdfgroup /app.jar
+	mkdir -p ${HOME} /configs /logs /customFiles /pipeline/watchedFolders /pipeline/finishedFolders /scripts /usr/share/fonts/custom && \
+    chown -R stirlingpdfuser:stirlingpdfgroup ${HOME} /configs /logs /customFiles /pipeline /scripts /usr/share/fonts/custom && \
+    chmod -R 755 ${HOME} /configs  /customFiles /pipeline /scripts /usr/share/fonts/custom && \
+    chmod -R 777 /logs
 
-# Set environment variables
-ENV ENDPOINTS_GROUPS_TO_REMOVE=CLI
+COPY build/libs/*.jar app.jar
+RUN chown stirlingpdfuser:stirlingpdfgroup /app.jar
 
 EXPOSE 8080/tcp
 

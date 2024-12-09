@@ -1,4 +1,4 @@
-# Build the application
+# Build stage
 FROM gradle:8.11-jdk17 AS build
 
 # Set the working directory
@@ -7,18 +7,20 @@ WORKDIR /app
 # Copy the entire project to the working directory
 COPY . .
 
-# Build the application with DOCKER_ENABLE_SECURITY=false
+# Build the application
 RUN DOCKER_ENABLE_SECURITY=true \
-./gradlew clean build
+    ./gradlew clean build
 
 # Main stage
 FROM alpine:3.20.3
 
-# Copy necessary files
+# Create non-root user first
+RUN addgroup -S stirlingpdfgroup && \
+    adduser -S stirlingpdfuser -G stirlingpdfgroup
+    
 COPY scripts /scripts
 COPY pipeline /pipeline
 COPY src/main/resources/static/fonts/*.ttf /usr/share/fonts/opentype/noto/
-COPY --from=build /app/build/libs/*.jar app.jar
 
 ARG VERSION_TAG
 
@@ -33,51 +35,45 @@ ENV DOCKER_ENABLE_SECURITY=false \
     FAT_DOCKER=true \
     INSTALL_BOOK_AND_ADVANCED_HTML_OPS=false
 
+# Create necessary directories with correct permissions
+RUN mkdir -p ${HOME} /configs /logs /customFiles /pipeline/watchedFolders /pipeline/finishedFolders /scripts /usr/share/fonts/custom && \
+    chown -R stirlingpdfuser:stirlingpdfgroup ${HOME} /configs /logs /customFiles /pipeline /scripts /usr/share/fonts/custom && \
+    chmod -R 755 ${HOME} /configs /logs /customFiles /pipeline /scripts /usr/share/fonts/custom
 
-# JDK for app
-RUN echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/main" | tee -a /etc/apk/repositories && \
-    echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/community" | tee -a /etc/apk/repositories && \
-    echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/testing" | tee -a /etc/apk/repositories && \
+# JDK and other dependencies
+RUN echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories && \
+    echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
+    echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories && \
     apk upgrade --no-cache -a && \
     apk add --no-cache \
-        ca-certificates \
-        tzdata \
-        tini \
-        bash \
-        curl \
-        shadow \
-        su-exec \
-        openssl \
-        openssl-dev \
-        openjdk21-jre \
-# Doc conversion
-        libreoffice \
-# pdftohtml
-        poppler-utils \
-# OCR MY PDF (unpaper for descew and other advanced featues)
-        qpdf \
-        tesseract-ocr-data-eng \
-        font-terminus font-dejavu font-noto font-noto-cjk font-awesome font-noto-extra \
-# CV
-        py3-opencv \
-# python3/pip
-        python3 \
+    ca-certificates \
+    tzdata \
+    tini \
+    bash \
+    curl \
+    openssl \
+    openssl-dev \
+    openjdk21-jre \
+    libreoffice \
+    poppler-utils \
+    qpdf \
+    tesseract-ocr-data-eng \
+    tesseract-ocr-data-fra \
+    font-terminus font-dejavu font-noto font-noto-cjk font-awesome font-noto-extra \
+    py3-opencv \
+    python3 \
     py3-pip && \
-# uno unoconv and HTML
     pip install --break-system-packages --no-cache-dir --upgrade unoconv WeasyPrint pdf2image pillow && \
     mv /usr/share/tessdata /usr/share/tessdata-original && \
-    mkdir -p $HOME /configs /logs /customFiles /pipeline/watchedFolders /pipeline/finishedFolders && \
-    fc-cache -f -v && \
-    chmod +x /scripts/* && \
-    chmod +x /scripts/init.sh && \
-# User permissions
-    addgroup -S stirlingpdfgroup && adduser -S stirlingpdfuser -G stirlingpdfgroup && \
-    chown -R stirlingpdfuser:stirlingpdfgroup $HOME /scripts /usr/share/fonts/opentype/noto /configs /customFiles /pipeline && \
-    chown stirlingpdfuser:stirlingpdfgroup /app.jar && \
-    tesseract --list-langs
+    mkdir -p /usr/share/tessdata && \
+    chown -R stirlingpdfuser:stirlingpdfgroup /usr/share/tessdata /usr/share/fonts/opentype/noto && \
+    fc-cache -f -v
+    
+COPY build/libs/*.jar app.jar
+RUN chown stirlingpdfuser:stirlingpdfgroup /app.jar
 
 EXPOSE 8080/tcp
 
-# Set user and run command
+
 ENTRYPOINT ["tini", "--", "/scripts/init.sh"]
 CMD ["java", "-Dfile.encoding=UTF-8", "-jar", "/app.jar"]
