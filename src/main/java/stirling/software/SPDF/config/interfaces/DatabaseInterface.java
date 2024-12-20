@@ -1,0 +1,13 @@
+package stirling.software.SPDF.config.interfaces;
+
+import java.sql.SQLException;
+import java.util.List;
+
+import stirling.software.SPDF.model.provider.UnsupportedProviderException;
+import stirling.software.SPDF.utils.FileInfo;
+
+public interface DatabaseInterface {
+    void exportDatabase() throws SQLException, UnsupportedProviderException;
+
+    List<FileInfo> getBackupList();
+}

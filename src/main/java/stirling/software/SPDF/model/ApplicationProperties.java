@@ -6,7 +6,6 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.sql.Driver;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -253,22 +252,36 @@ public class ApplicationProperties {
 
     @Data
     public static class Datasource {
-        private String url;
-        private Driver driver;
+        private String type;
+        private String hostName;
+        private Integer port;
+        private String name;
         private String username;
-        private String password;
+        @ToString.Exclude private String password;
+        private boolean useDefault;
+        private final String defaultUrl;
     }
 
     public enum Driver {
         H2("h2"),
         POSTGRESQL("postgresql"),
         ORACLE("oracle"),
-        MY_SQL("mysql");
+        MYSQL("mysql");
 
         private final String driverName;
 
         Driver(String driverName) {
             this.driverName = driverName;
+        }
+
+        @Override
+        public String toString() {
+            return """
+                    Driver {
+                      driverName='%s'
+                    }
+                    """
+                    .formatted(driverName);
         }
     }
 

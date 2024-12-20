@@ -297,10 +297,14 @@ dependencies {
         implementation "org.springframework.boot:spring-boot-starter-oauth2-client:$springBootVersion"
 
 		implementation "org.springframework.session:spring-session-core:$springBootVersion"
+        implementation "org.springframework:spring-jdbc"
 
 	    implementation 'com.unboundid.product.scim2:scim2-sdk-client:2.3.5'
         // Don't upgrade h2database
+        runtimeOnly "com.h2database:h2:2.3.232"
         runtimeOnly "org.postgresql:postgresql:42.7.4"
+
+        implementation "com.unboundid.product.scim2:scim2-sdk-client:2.3.5"
         constraints {
             implementation "org.opensaml:opensaml-core:$openSamlVersion"
             implementation "org.opensaml:opensaml-saml-api:$openSamlVersion"
@@ -388,6 +392,7 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
     dependsOn "spotlessApply"
 }
+
 compileJava {
     options.compilerArgs << "-parameters"
 }

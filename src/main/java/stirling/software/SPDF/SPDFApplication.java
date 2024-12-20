@@ -1,6 +1,5 @@
 package stirling.software.SPDF;
 
-import java.awt.*;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.file.Files;
@@ -10,8 +9,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-
-import javax.swing.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,51 +26,25 @@ import stirling.software.SPDF.UI.WebBrowser;
 import stirling.software.SPDF.config.ConfigInitializer;
 import stirling.software.SPDF.model.ApplicationProperties;
 
-@SpringBootApplication
-@EnableScheduling
 @Slf4j
-public class SPdfApplication {
+@EnableScheduling
+@SpringBootApplication
+public class SPDFApplication {
+
+    private static String serverPortStatic;
+    private static String baseUrlStatic;
 
     @Autowired private Environment env;
-    @Autowired ApplicationProperties applicationProperties;
+    @Autowired private ApplicationProperties applicationProperties;
 
-    private static String baseUrlStatic;
-    private static String serverPortStatic;
+    @Autowired(required = false)
+    private WebBrowser webBrowser;
 
     @Value("${baseUrl:http://localhost}")
     private String baseUrl;
 
-    @Value("${server.port:8080}")
-    public void setServerPortStatic(String port) {
-        if ("auto".equalsIgnoreCase(port)) {
-            // Use Spring Boot's automatic port assignment (server.port=0)
-            SPdfApplication.serverPortStatic =
-                    "0"; // This will let Spring Boot assign an available port
-        } else {
-            SPdfApplication.serverPortStatic = port;
-        }
-    }
-
-    // Optionally keep this method if you want to provide a manual port-incrementation fallback.
-    private static String findAvailablePort(int startPort) {
-        int port = startPort;
-        while (!isPortAvailable(port)) {
-            port++;
-        }
-        return String.valueOf(port);
-    }
-
-    private static boolean isPortAvailable(int port) {
-        try (ServerSocket socket = new ServerSocket(port)) {
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
     public static void main(String[] args) throws IOException, InterruptedException {
-
-        SpringApplication app = new SpringApplication(SPdfApplication.class);
+        SpringApplication app = new SpringApplication(SPDFApplication.class);
 
         Properties props = new Properties();
 
@@ -84,7 +55,7 @@ public class SPdfApplication {
             props.put("spring.main.web-application-type", "servlet");
         }
 
-        app.setAdditionalProfiles("default");
+        app.setAdditionalProfiles(getActiveProfile(args));
         app.addInitializers(new ConfigInitializer());
         Map<String, String> propertyFiles = new HashMap<>();
 
@@ -134,15 +105,6 @@ public class SPdfApplication {
         printStartupLogs();
     }
 
-    private static void printStartupLogs() {
-        log.info("Stirling-PDF Started.");
-        String url = baseUrlStatic + ":" + getStaticPort();
-        log.info("Navigate to {}", url);
-    }
-
-    @Autowired(required = false)
-    private WebBrowser webBrowser;
-
     @PostConstruct
     public void init() {
         baseUrlStatic = this.baseUrl;
@@ -173,11 +135,59 @@ public class SPdfApplication {
         log.info("Running configs {}", applicationProperties.toString());
     }
 
+    @Value("${server.port:8080}")
+    public void setServerPortStatic(String port) {
+        if ("auto".equalsIgnoreCase(port)) {
+            // Use Spring Boot's automatic port assignment (server.port=0)
+            SPDFApplication.serverPortStatic =
+                    "0"; // This will let Spring Boot assign an available port
+        } else {
+            SPDFApplication.serverPortStatic = port;
+        }
+    }
+
     @PreDestroy
     public void cleanup() {
         if (webBrowser != null) {
             webBrowser.cleanup();
         }
+    }
+
+    private static void printStartupLogs() {
+        log.info("Stirling-PDF Started.");
+        String url = baseUrlStatic + ":" + getStaticPort();
+        log.info("Navigate to {}", url);
+    }
+
+    private static String[] getActiveProfile(String[] args) {
+        if (args == null) {
+            return new String[] {"default"};
+        }
+
+        for (String arg : args) {
+            if (arg.contains("spring.profiles.active")) {
+                return arg.substring(args[0].indexOf('=') + 1).split(",");
+            }
+        }
+
+        return new String[] {"default"};
+    }
+
+    private static boolean isPortAvailable(int port) {
+        try (ServerSocket socket = new ServerSocket(port)) {
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    // Optionally keep this method if you want to provide a manual port-incrementation fallback.
+    private static String findAvailablePort(int startPort) {
+        int port = startPort;
+        while (!isPortAvailable(port)) {
+            port++;
+        }
+        return String.valueOf(port);
     }
 
     public static String getStaticBaseUrl() {

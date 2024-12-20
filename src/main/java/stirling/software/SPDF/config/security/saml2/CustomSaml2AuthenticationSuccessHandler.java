@@ -1,6 +1,7 @@
 package stirling.software.SPDF.config.security.saml2;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.Authentication;
@@ -18,6 +19,7 @@ import stirling.software.SPDF.config.security.UserService;
 import stirling.software.SPDF.model.ApplicationProperties;
 import stirling.software.SPDF.model.ApplicationProperties.Security.SAML2;
 import stirling.software.SPDF.model.AuthenticationType;
+import stirling.software.SPDF.model.provider.UnsupportedProviderException;
 import stirling.software.SPDF.utils.RequestUriUtils;
 
 @AllArgsConstructor
@@ -108,13 +110,14 @@ public class CustomSaml2AuthenticationSuccessHandler
                     userService.processSSOPostLogin(username, saml2.getAutoCreateUser());
                     log.debug("Successfully processed authentication for user: {}", username);
                     response.sendRedirect(contextPath + "/");
-                    return;
                 } catch (IllegalArgumentException e) {
                     log.debug(
                             "Invalid username detected for user: {}, redirecting to logout",
                             username);
                     response.sendRedirect(contextPath + "/logout?invalidUsername=true");
-                    return;
+                } catch (SQLException | UnsupportedProviderException e) {
+                    log.error("Error, redirecting to logout", e);
+                    response.sendRedirect(contextPath + "/logout?error=true");
                 }
             }
         } else {
