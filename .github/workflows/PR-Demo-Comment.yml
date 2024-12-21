@@ -5,7 +5,7 @@ on:
     types: [created]
 permissions:
   pull-requests: write
-  contents: read 
+  contents: write 
 jobs:
   check-comment:
     runs-on: ubuntu-latest
