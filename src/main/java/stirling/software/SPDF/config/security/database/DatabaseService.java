@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 import stirling.software.SPDF.config.interfaces.DatabaseInterface;
 import stirling.software.SPDF.model.ApplicationProperties;
+import stirling.software.SPDF.model.exception.BackupNotFoundException;
 import stirling.software.SPDF.model.provider.UnsupportedProviderException;
 import stirling.software.SPDF.utils.FileInfo;
 
@@ -37,19 +38,35 @@ public class DatabaseService implements DatabaseInterface {
 
     public static final String BACKUP_PREFIX = "backup_";
     public static final String SQL_SUFFIX = ".sql";
-    private static final Path BACKUP_PATH = Paths.get("configs/db/backup/");
+    private static final String BACKUP_DIR = "configs/db/backup/";
 
     @Autowired private DatabaseConfig databaseConfig;
 
+    /**
+     * Checks if there is at least one backup
+     *
+     * @return true if there are backup scripts, false if there are not
+     */
+    @Override
+    public boolean hasBackup() {
+        Path filePath = Paths.get(BACKUP_DIR + "*");
+
+        return Files.exists(filePath);
+    }
+
+    /**
+     * Read the backup directory and filter for files with the prefix "backup_" and suffix ".sql"
+     *
+     * @return a <code>List</code> of backup files
+     */
     @Override
     public List<FileInfo> getBackupList() {
         List<FileInfo> backupFiles = new ArrayList<>();
+        Path backupPath = Paths.get(BACKUP_DIR);
 
-        // Read the backup directory and filter for files with the prefix "backup_" and suffix
-        // ".sql"
         try (DirectoryStream<Path> stream =
                 Files.newDirectoryStream(
-                        BACKUP_PATH,
+                        backupPath,
                         path ->
                                 path.getFileName().toString().startsWith(BACKUP_PREFIX)
                                         && path.getFileName().toString().endsWith(SQL_SUFFIX))) {
@@ -77,7 +94,17 @@ public class DatabaseService implements DatabaseInterface {
         return backupFiles;
     }
 
-    // Imports a database backup from the specified file.
+    @Override
+    public void importDatabase() {
+        if (!hasBackup()) throw new BackupNotFoundException("No backup scripts were found.");
+
+        List<FileInfo> backupList = this.getBackupList();
+        backupList.sort(Comparator.comparing(FileInfo::getModificationDate).reversed());
+
+        executeDatabaseScript(Paths.get(backupList.get(0).getFilePath()));
+    }
+
+    /** Imports a database backup from the specified file. */
     public boolean importDatabaseFromUI(String fileName) {
         try {
             importDatabaseFromUI(getBackupFilePath(fileName));
@@ -92,7 +119,7 @@ public class DatabaseService implements DatabaseInterface {
         }
     }
 
-    // Imports a database backup from the specified path.
+    /** Imports a database backup from the specified path. */
     private void importDatabaseFromUI(Path tempTemplatePath) throws IOException {
         executeDatabaseScript(tempTemplatePath);
         LocalDateTime dateNow = LocalDateTime.now();
@@ -104,9 +131,9 @@ public class DatabaseService implements DatabaseInterface {
         Files.deleteIfExists(tempTemplatePath);
     }
 
+    /** Filter and delete old backups if there are more than 5 */
     @Override
     public void exportDatabase() throws SQLException, UnsupportedProviderException {
-        // Filter and delete old backups if there are more than 5
         List<FileInfo> filteredBackupList =
                 this.getBackupList().stream()
                         .filter(backup -> !backup.getFileName().startsWith(BACKUP_PREFIX + "user_"))
@@ -149,7 +176,11 @@ public class DatabaseService implements DatabaseInterface {
         }
     }
 
-    // Retrieves the H2 database version.
+    /**
+     * Retrieves the H2 database version.
+     *
+     * @return <code>String</code> of the H2 version
+     */
     public String getH2Version() {
         String version = "Unknown";
 
@@ -175,7 +206,11 @@ public class DatabaseService implements DatabaseInterface {
         return version;
     }
 
-    // Deletes a backup file.
+    /**
+     * Deletes a backup file.
+     *
+     * @return true if successful, false if not
+     */
     public boolean deleteBackupFile(String fileName) throws IOException {
         if (!isValidFileName(fileName)) {
             log.error("Invalid file name: {}", fileName);
@@ -191,10 +226,14 @@ public class DatabaseService implements DatabaseInterface {
         }
     }
 
-    // Gets the Path object for a given backup file name.
+    /**
+     * Gets the Path for a given backup file name.
+     *
+     * @return the <code>Path</code> object for the given file name
+     */
     public Path getBackupFilePath(String fileName) {
-        Path filePath = Paths.get(BACKUP_PATH.toString(), fileName).normalize();
-        if (!filePath.startsWith(BACKUP_PATH)) {
+        Path filePath = Paths.get(BACKUP_DIR, fileName).normalize();
+        if (!filePath.startsWith(BACKUP_DIR)) {
             throw new SecurityException("Path traversal detected");
         }
         return filePath;
@@ -212,8 +251,12 @@ public class DatabaseService implements DatabaseInterface {
         }
     }
 
+    /**
+     * Checks for invalid characters or sequences
+     *
+     * @return true if it contains no invalid characters, false if it does
+     */
     private boolean isValidFileName(String fileName) {
-        // Check for invalid characters or sequences
         return fileName != null
                 && !fileName.contains("..")
                 && !fileName.contains("/")

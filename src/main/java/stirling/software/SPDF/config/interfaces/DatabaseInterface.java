@@ -9,5 +9,9 @@ import stirling.software.SPDF.utils.FileInfo;
 public interface DatabaseInterface {
     void exportDatabase() throws SQLException, UnsupportedProviderException;
 
+    void importDatabase();
+
+    boolean hasBackup();
+
     List<FileInfo> getBackupList();
 }
