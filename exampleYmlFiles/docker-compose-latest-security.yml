@@ -39,8 +39,6 @@ services:
       SYSTEM_DATASOURCE_USEDEFAULT: "false"
       SYSTEM_DATASOURCE_USERNAME: "admin"
       SYSTEM_DATASOURCE_PASSWORD: "stirling"
-#      SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
-#      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: "org.hibernate.dialect.PostgreSQLDialect"
     restart: on-failure:5
 
   db:
