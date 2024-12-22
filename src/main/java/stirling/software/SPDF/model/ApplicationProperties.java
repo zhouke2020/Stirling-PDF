@@ -247,6 +247,42 @@ public class ApplicationProperties {
         private String tessdataDir;
         private Boolean enableAlphaFunctionality;
         private String enableAnalytics;
+        private Datasource datasource;
+    }
+
+    @Data
+    public static class Datasource {
+        private String type;
+        private String hostName;
+        private Integer port;
+        private String name;
+        private String username;
+        @ToString.Exclude private String password;
+        private boolean useDefault;
+        private final String defaultUrl;
+    }
+
+    public enum Driver {
+        H2("h2"),
+        POSTGRESQL("postgresql"),
+        ORACLE("oracle"),
+        MYSQL("mysql");
+
+        private final String driverName;
+
+        Driver(String driverName) {
+            this.driverName = driverName;
+        }
+
+        @Override
+        public String toString() {
+            return """
+                    Driver {
+                      driverName='%s'
+                    }
+                    """
+                    .formatted(driverName);
+        }
     }
 
     @Data
