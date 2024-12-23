@@ -29,12 +29,10 @@ class DatabaseConfigTest {
     void testDefaultConfigurationForDataSource() throws UnsupportedProviderException {
         var system = mock(ApplicationProperties.System.class);
         var datasource = mock(ApplicationProperties.Datasource.class);
-        var testUrl = "jdbc:h2:mem:test";
 
         when(applicationProperties.getSystem()).thenReturn(system);
         when(system.getDatasource()).thenReturn(datasource);
-        when(datasource.isUseDefault()).thenReturn(true);
-        when(datasource.getDefaultUrl()).thenReturn(testUrl);
+        when(datasource.isEnableCustomDatabase()).thenReturn(true);
 
         var result = databaseConfig.dataSource();
 
@@ -48,7 +46,7 @@ class DatabaseConfigTest {
 
         when(applicationProperties.getSystem()).thenReturn(system);
         when(system.getDatasource()).thenReturn(datasource);
-        when(datasource.isUseDefault()).thenReturn(false);
+        when(datasource.isEnableCustomDatabase()).thenReturn(false);
         when(datasource.getType()).thenReturn("postgresql");
         when(datasource.getHostName()).thenReturn("localhost");
         when(datasource.getPort()).thenReturn(5432);
@@ -69,7 +67,7 @@ class DatabaseConfigTest {
 
         when(applicationProperties.getSystem()).thenReturn(system);
         when(system.getDatasource()).thenReturn(datasource);
-        when(datasource.isUseDefault()).thenReturn(false);
+        when(datasource.isEnableCustomDatabase()).thenReturn(false);
         when(datasource.getType()).thenReturn(datasourceType);
 
         assertThrows(UnsupportedProviderException.class, () -> databaseConfig.dataSource());

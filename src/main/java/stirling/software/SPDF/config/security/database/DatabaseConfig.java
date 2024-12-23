@@ -1,8 +1,5 @@
 package stirling.software.SPDF.config.security.database;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,16 +12,22 @@ import lombok.extern.slf4j.Slf4j;
 import stirling.software.SPDF.model.ApplicationProperties;
 import stirling.software.SPDF.model.provider.UnsupportedProviderException;
 
-@Getter
 @Slf4j
+@Getter
 @Configuration
 public class DatabaseConfig {
 
+    public static final String DATASOURCE_DEFAULT_URL =
+            "jdbc:h2:file:./configs/stirling-pdf-DB-2.3.232;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE";
     public static final String DATASOURCE_URL_TEMPLATE = "jdbc:%s://%s:%4d/%s";
+    public static final String DEFAULT_DRIVER = "org.h2.Driver";
+    public static final String DEFAULT_USERNAME = "sa";
+    public static final String POSTGRES_DRIVER = "org.postgresql.Driver";
 
     private final ApplicationProperties applicationProperties;
 
-    public DatabaseConfig(@Autowired ApplicationProperties applicationProperties) {
+    @Autowired
+    public DatabaseConfig(ApplicationProperties applicationProperties) {
         this.applicationProperties = applicationProperties;
     }
 
@@ -42,12 +45,12 @@ public class DatabaseConfig {
         ApplicationProperties.Datasource datasource = system.getDatasource();
         DataSourceBuilder<?> dataSourceBuilder = DataSourceBuilder.create();
 
-        if (datasource.isUseDefault()) {
+        if (datasource.isEnableCustomDatabase()) {
             log.debug("Using default H2 database");
 
-            dataSourceBuilder.driverClassName("org.h2.Driver");
-            dataSourceBuilder.url(datasource.getDefaultUrl());
-            dataSourceBuilder.username("sa");
+            dataSourceBuilder.driverClassName(DEFAULT_DRIVER);
+            dataSourceBuilder.url(DATASOURCE_DEFAULT_URL);
+            dataSourceBuilder.username(DEFAULT_USERNAME);
 
             return dataSourceBuilder.build();
         }
@@ -80,15 +83,6 @@ public class DatabaseConfig {
     }
 
     /**
-     * @return a <code>Connection</code> using the configured <code>DataSource</code>
-     * @throws SQLException if a database access error occurs
-     * @throws UnsupportedProviderException when an unsupported database is selected
-     */
-    public Connection connection() throws SQLException, UnsupportedProviderException {
-        return dataSource().getConnection();
-    }
-
-    /**
      * Selects the database driver based on the type of database chosen.
      *
      * @param driverName the type of the driver (e.g. 'h2', 'postgresql')
@@ -103,11 +97,11 @@ public class DatabaseConfig {
             switch (driver) {
                 case H2 -> {
                     log.debug("H2 driver selected");
-                    return "org.h2.Driver";
+                    return DEFAULT_DRIVER;
                 }
                 case POSTGRESQL -> {
                     log.debug("Postgres driver selected");
-                    return "org.postgresql.Driver";
+                    return POSTGRES_DRIVER;
                 }
                 default -> {
                     log.warn("{} driver selected", driverName);

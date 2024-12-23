@@ -252,14 +252,13 @@ public class ApplicationProperties {
 
     @Data
     public static class Datasource {
+        private boolean enableCustomDatabase;
         private String type;
         private String hostName;
         private Integer port;
         private String name;
         private String username;
         @ToString.Exclude private String password;
-        private boolean useDefault;
-        private final String defaultUrl;
     }
 
     public enum Driver {
