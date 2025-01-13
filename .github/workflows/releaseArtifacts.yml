@@ -53,7 +53,7 @@ jobs:
         run: cp ./build/launch4j/Stirling-PDF.exe ./build/launch4j/Stirling-PDF-Server${{ matrix.file_suffix }}.exe
 
       - name: Upload Assets binarie
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           path: ./build/launch4j/Stirling-PDF-Server${{ matrix.file_suffix }}.exe
           name: Stirling-PDF-Server${{ matrix.file_suffix }}.exe
@@ -70,7 +70,7 @@ jobs:
         run: cp ./build/libs/Stirling-PDF-${{ steps.versionNumber.outputs.versionNumber }}.jar ./build/libs/Stirling-PDF${{ matrix.file_suffix }}.jar
 
       - name: Upload Assets jar binaries
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           path: ./build/libs/Stirling-PDF${{ matrix.file_suffix }}.jar
           name: Stirling-PDF${{ matrix.file_suffix }}.jar
